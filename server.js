@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const host = process.env.HOST || 'localhost';
 
 // Middleware
 app.use(cors());
@@ -163,6 +164,6 @@ app.post('/api/attendance', (req, res) => {
     );
 });
 
-app.listen(port, '127.0.0.1', () => {
-    console.log(`Server running at http://127.0.0.1:${port}`);
+app.listen(port, host, () => {
+    console.log(`Server running at http://${host}:${port}`);
 });
