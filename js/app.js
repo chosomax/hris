@@ -14,14 +14,14 @@ async function fetchEmployees() {
 }
 
 // Function to add employee via API
-async function addEmployeeAPI(name, position, department) {
+async function addEmployeeAPI(employee) {
     try {
         const response = await fetch(`${API_URL}/employees`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ name, position, department })
+            body: JSON.stringify(employee)
         });
         const newEmployee = await response.json();
         return newEmployee;
@@ -74,6 +74,34 @@ async function addEmployee(name, position, department) {
 async function deleteEmployee(id) {
     await deleteEmployeeAPI(id);
     await renderEmployees();
+}
+
+// Event listener for add employee form
+const addEmployeeForm = document.getElementById('add-employee-form');
+if (addEmployeeForm) {
+    addEmployeeForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const employee = {
+            first_name: document.getElementById('first-name').value.trim(),
+            last_name: document.getElementById('last-name').value.trim(),
+            email: document.getElementById('email').value.trim() || null,
+            phone: document.getElementById('phone').value.trim() || null,
+            position: document.getElementById('position').value.trim(),
+            department: document.getElementById('department').value.trim(),
+            basic_salary: parseFloat(document.getElementById('salary').value) || 0.00,
+            hire_date: document.getElementById('hire-date').value,
+            status: 'ACTIVE'
+        };
+
+        const newEmployee = await addEmployeeAPI(employee);
+        if (newEmployee) {
+            addEmployeeForm.reset();
+            alert('Employee added successfully and saved to the database.');
+        } else {
+            alert('Failed to add employee. Please try again.');
+        }
+    });
 }
 
 // Function to fetch attendance from server

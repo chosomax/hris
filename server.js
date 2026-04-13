@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const util = require('util');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,6 +16,7 @@ app.use(express.static('.')); // Serve static files
 // MySQL connection
 const dbConfig = {
     host: 'localhost',
+    port: process.env.DB_PORT || 3306,
     user: 'root',
     password: 'root',
     database: 'hris_payroll_db'
@@ -89,19 +91,72 @@ app.get('/api/employees', (req, res) => {
     });
 });
 
+function findOrCreateDepartment(deptName, callback) {
+    dbConnection.query('SELECT dept_id FROM departments WHERE dept_name = ?', [deptName], (err, results) => {
+        if (err) return callback(err);
+        if (results.length > 0) return callback(null, results[0].dept_id);
+        dbConnection.query('INSERT INTO departments (dept_name) VALUES (?)', [deptName], (err, result) => {
+            if (err) return callback(err);
+            callback(null, result.insertId);
+        });
+    });
+}
+
+function findOrCreatePosition(positionName, callback) {
+    dbConnection.query('SELECT position_id FROM positions WHERE position_name = ?', [positionName], (err, results) => {
+        if (err) return callback(err);
+        if (results.length > 0) return callback(null, results[0].position_id);
+        dbConnection.query('INSERT INTO positions (position_name, base_rate) VALUES (?, ?)', [positionName, 0.00], (err, result) => {
+            if (err) return callback(err);
+            callback(null, result.insertId);
+        });
+    });
+}
+
 app.post('/api/employees', (req, res) => {
     console.log('POST /api/employees called with:', req.body);
     if (!dbConnection) {
         return res.status(500).json({ error: 'Database not connected' });
     }
-    const { name, position, department } = req.body;
-    dbConnection.query('INSERT INTO employees (name, position, department) VALUES (?, ?, ?)', [name, position, department], (err, result) => {
+    const {
+        first_name,
+        last_name,
+        email = null,
+        phone = null,
+        department,
+        position,
+        basic_salary = 0.00,
+        hire_date,
+        status = 'ACTIVE'
+    } = req.body;
+
+    if (!first_name || !last_name || !department || !position || !hire_date) {
+        return res.status(400).json({ error: 'Missing required employee fields' });
+    }
+
+    findOrCreateDepartment(department, (err, dept_id) => {
         if (err) {
-            console.log('Insert error:', err);
-            throw err;
+            console.log('Department lookup error:', err);
+            return res.status(500).json({ error: 'Department lookup failed' });
         }
-        console.log('Employee inserted:', result.insertId);
-        res.json({ id: result.insertId, name, position, department });
+        findOrCreatePosition(position, (err, position_id) => {
+            if (err) {
+                console.log('Position lookup error:', err);
+                return res.status(500).json({ error: 'Position lookup failed' });
+            }
+            dbConnection.query(
+                'INSERT INTO employees (first_name, last_name, email, phone, dept_id, position_id, basic_salary, hire_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [first_name, last_name, email, phone, dept_id, position_id, basic_salary, hire_date, status],
+                (err, result) => {
+                    if (err) {
+                        console.log('Employee insert error:', err);
+                        return res.status(500).json({ error: 'Employee insert failed' });
+                    }
+                    console.log('Employee inserted:', result.insertId);
+                    res.json({ id: result.insertId, first_name, last_name, email, phone, department, position, basic_salary, hire_date, status });
+                }
+            );
+        });
     });
 });
 
