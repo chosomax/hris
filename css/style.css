@@ -1,0 +1,141 @@
+:root {
+    --color-strong: #388087;
+    --color-primary: #6FB3B8;
+    --color-soft: #BADFE7;
+    --color-accent: #C2EDCE;
+    --color-bg: #F6F6F2;
+    --color-text: #2C3E40;
+    --color-border: rgba(44, 62, 64, 0.15);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+header {
+    background-color: var(--color-strong);
+    color: var(--color-bg);
+    padding: 1.2rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+nav {
+    margin-top: 1rem;
+}
+
+nav a {
+    color: var(--color-bg);
+    margin: 0 1rem;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+nav a:hover {
+    color: var(--color-accent);
+}
+
+main {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h2 {
+    color: var(--color-strong);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    background-color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+th,
+td {
+    border: 1px solid var(--color-border);
+    padding: 12px 14px;
+    text-align: left;
+}
+
+th {
+    background-color: var(--color-soft);
+    color: var(--color-text);
+}
+
+tbody tr:nth-child(even) {
+    background-color: var(--color-bg);
+}
+
+form {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background-color: white;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+}
+
+label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background-color: white;
+    color: var(--color-text);
+}
+
+button {
+    margin-top: 1.25rem;
+    padding: 12px 18px;
+    background-color: var(--color-primary);
+    color: var(--color-bg);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: background-color 0.2s ease;
+}
+
+button:hover {
+    background-color: var(--color-strong);
+}
+
+#attendance-table {
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    nav a {
+        margin: 0.5rem;
+    }
+
+    main {
+        padding: 1rem;
+    }
+
+    form {
+        padding: 1rem;
+    }
+}
