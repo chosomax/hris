@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const util = require('util');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,11 +16,11 @@ app.use(express.static('.')); // Serve static files
 
 // MySQL connection
 const dbConfig = {
-    host: 'localhost',
+    host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
-    user: 'root',
-    password: 'root',
-    database: 'hris_payroll_db'
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'root',
+    database: process.env.DB_NAME || 'hris_payroll_db'
 };
 
 let dbConnection = mysql.createConnection(dbConfig);
