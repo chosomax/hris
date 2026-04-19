@@ -23,6 +23,15 @@ const dbConfig = {
     database: process.env.DB_NAME || 'hris_payroll_db'
 };
 
+const positionBaseRates = {
+    'Software Engineer': 45000.00,
+    'HR Manager': 38000.00,
+    'Accountant': 32000.00,
+    'Sales Associate': 25000.00,
+    'Customer Support': 22000.00,
+    'Intern': 12000.00
+};
+
 let dbConnection = mysql.createConnection(dbConfig);
 
 dbConnection.connect((err) => {
@@ -32,34 +41,81 @@ dbConnection.connect((err) => {
     }
     console.log('Connected to hris_payroll_db');
 
-    // Create employees table if not exists
     dbConnection.query(`
-        CREATE TABLE IF NOT EXISTS employees (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            position VARCHAR(255) NOT NULL,
-            department VARCHAR(255) NOT NULL
+        CREATE TABLE IF NOT EXISTS departments (
+            dept_id INT AUTO_INCREMENT PRIMARY KEY,
+            dept_name VARCHAR(255) UNIQUE NOT NULL
         )
     `, (err) => {
         if (err) throw err;
-        console.log('Employees table ready');
-
-        // Insert sample data if table is empty
-        dbConnection.query('SELECT COUNT(*) as count FROM employees', (err, results) => {
+        dbConnection.query(`
+            CREATE TABLE IF NOT EXISTS positions (
+                position_id INT AUTO_INCREMENT PRIMARY KEY,
+                position_name VARCHAR(255) UNIQUE NOT NULL,
+                base_rate DECIMAL(12,2) DEFAULT 0.00
+            )
+        `, (err) => {
             if (err) throw err;
-            if (results[0].count === 0) {
-                const sampleEmployees = [
-                    ['John Doe', 'Software Engineer', 'IT'],
-                    ['Jane Smith', 'HR Manager', 'Human Resources'],
-                    ['Bob Johnson', 'Accountant', 'Finance']
-                ];
-                sampleEmployees.forEach(emp => {
-                    dbConnection.query('INSERT INTO employees (name, position, department) VALUES (?, ?, ?)', emp, (err) => {
-                        if (err) console.log('Error inserting sample:', err);
+            dbConnection.query(`
+                CREATE TABLE IF NOT EXISTS employees (
+                    emp_id INT AUTO_INCREMENT PRIMARY KEY,
+                    first_name VARCHAR(255) NOT NULL,
+                    last_name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255),
+                    phone VARCHAR(50),
+                    dept_id INT NOT NULL,
+                    position_id INT NOT NULL,
+                    basic_salary DECIMAL(12,2) DEFAULT 0.00,
+                    hire_date DATE NOT NULL,
+                    status VARCHAR(50) NOT NULL,
+                    FOREIGN KEY (dept_id) REFERENCES departments(dept_id),
+                    FOREIGN KEY (position_id) REFERENCES positions(position_id)
+                )
+            `, (err) => {
+                if (err) throw err;
+                dbConnection.query(`
+                    CREATE TABLE IF NOT EXISTS attendance (
+                        attendance_id INT AUTO_INCREMENT PRIMARY KEY,
+                        emp_id INT NOT NULL,
+                        work_date DATE NOT NULL,
+                        time_in DATETIME,
+                        time_out DATETIME,
+                        status VARCHAR(50),
+                        overtime_hours DECIMAL(5,2) DEFAULT 0,
+                        FOREIGN KEY (emp_id) REFERENCES employees(emp_id)
+                    )
+                `, (err) => {
+                    if (err) throw err;
+                    console.log('Database tables ready');
+
+                    dbConnection.query('SELECT COUNT(*) as count FROM employees', (err, results) => {
+                        if (err) throw err;
+                        if (results[0].count === 0) {
+                            const sampleEmployees = [
+                                { first_name: 'John', last_name: 'Doe', position: 'Software Engineer', department: 'IT', basic_salary: 45000.00 },
+                                { first_name: 'Jane', last_name: 'Smith', position: 'HR Manager', department: 'Human Resources', basic_salary: 38000.00 },
+                                { first_name: 'Bob', last_name: 'Johnson', position: 'Accountant', department: 'Finance', basic_salary: 32000.00 }
+                            ];
+                            sampleEmployees.forEach(emp => {
+                                findOrCreateDepartment(emp.department, (err, dept_id) => {
+                                    if (err) return console.log('Error inserting sample department:', err);
+                                    findOrCreatePosition(emp.position, (err, position_id) => {
+                                        if (err) return console.log('Error inserting sample position:', err);
+                                        dbConnection.query(
+                                            'INSERT INTO employees (first_name, last_name, email, phone, dept_id, position_id, basic_salary, hire_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), ?)',
+                                            [emp.first_name, emp.last_name, null, null, dept_id, position_id, emp.basic_salary, 'ACTIVE'],
+                                            (err) => {
+                                                if (err) console.log('Error inserting sample employee:', err);
+                                            }
+                                        );
+                                    });
+                                });
+                            });
+                            console.log('Sample employees inserted');
+                        }
                     });
                 });
-                console.log('Sample employees inserted');
-            }
+            });
         });
     });
 });
@@ -76,7 +132,8 @@ app.get('/api/employees', (req, res) => {
             e.emp_id AS id,
             CONCAT(e.first_name, ' ', e.last_name) AS name,
             IFNULL(p.position_name, 'Unknown') AS position,
-            IFNULL(d.dept_name, 'Unknown') AS department
+            IFNULL(d.dept_name, 'Unknown') AS department,
+            IFNULL(e.basic_salary, 0.00) AS basic_salary
         FROM employees e
         LEFT JOIN positions p ON e.position_id = p.position_id
         LEFT JOIN departments d ON e.dept_id = d.dept_id
@@ -104,10 +161,11 @@ function findOrCreateDepartment(deptName, callback) {
 }
 
 function findOrCreatePosition(positionName, callback) {
+    const baseRate = positionBaseRates[positionName] || 0.00;
     dbConnection.query('SELECT position_id FROM positions WHERE position_name = ?', [positionName], (err, results) => {
         if (err) return callback(err);
         if (results.length > 0) return callback(null, results[0].position_id);
-        dbConnection.query('INSERT INTO positions (position_name, base_rate) VALUES (?, ?)', [positionName, 0.00], (err, result) => {
+        dbConnection.query('INSERT INTO positions (position_name, base_rate) VALUES (?, ?)', [positionName, baseRate], (err, result) => {
             if (err) return callback(err);
             callback(null, result.insertId);
         });
@@ -135,6 +193,8 @@ app.post('/api/employees', (req, res) => {
         return res.status(400).json({ error: 'Missing required employee fields' });
     }
 
+    const salary = Number(basic_salary) > 0 ? Number(basic_salary) : (positionBaseRates[position] || 0.00);
+
     findOrCreateDepartment(department, (err, dept_id) => {
         if (err) {
             console.log('Department lookup error:', err);
@@ -147,14 +207,14 @@ app.post('/api/employees', (req, res) => {
             }
             dbConnection.query(
                 'INSERT INTO employees (first_name, last_name, email, phone, dept_id, position_id, basic_salary, hire_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [first_name, last_name, email, phone, dept_id, position_id, basic_salary, hire_date, status],
+                [first_name, last_name, email, phone, dept_id, position_id, salary, hire_date, status],
                 (err, result) => {
                     if (err) {
                         console.log('Employee insert error:', err);
                         return res.status(500).json({ error: 'Employee insert failed' });
                     }
                     console.log('Employee inserted:', result.insertId);
-                    res.json({ id: result.insertId, first_name, last_name, email, phone, department, position, basic_salary, hire_date, status });
+                    res.json({ id: result.insertId, first_name, last_name, email, phone, department, position, basic_salary: salary, hire_date, status });
                 }
             );
         });

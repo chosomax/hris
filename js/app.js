@@ -1,6 +1,60 @@
 // API base URL
 const API_URL = 'http://localhost:3000/api';
 
+const positionSalaryMap = {
+    'Software Engineer': 45000.00,
+    'HR Manager': 38000.00,
+    'Accountant': 32000.00,
+    'Sales Associate': 25000.00,
+    'Customer Support': 22000.00,
+    'Intern': 12000.00
+};
+const HOURS_PER_MONTH = 160;
+
+function formatPesos(value) {
+    const amount = Number(value) || 0;
+    return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function getSalaryForPosition(position) {
+    return positionSalaryMap[position.trim()] || 0;
+}
+
+function getHourlyRate(salary) {
+    return salary > 0 ? salary / HOURS_PER_MONTH : 0;
+}
+
+function updateHourlyRateDisplay() {
+    const salaryInput = document.getElementById('salary');
+    const hourlyRateInput = document.getElementById('hourly-rate');
+    if (!salaryInput || !hourlyRateInput) return;
+    const salary = parseFloat(salaryInput.value) || 0;
+    hourlyRateInput.value = formatPesos(getHourlyRate(salary));
+}
+
+function updateSalaryFromPosition() {
+    const positionInput = document.getElementById('position');
+    const salaryInput = document.getElementById('salary');
+    if (!positionInput || !salaryInput) return;
+    const salary = getSalaryForPosition(positionInput.value || '');
+    if (salary > 0) {
+        salaryInput.value = salary.toFixed(2);
+    }
+    updateHourlyRateDisplay();
+}
+
+function setupSalaryAutomation() {
+    const positionInput = document.getElementById('position');
+    const salaryInput = document.getElementById('salary');
+    if (positionInput) {
+        positionInput.addEventListener('input', updateSalaryFromPosition);
+        positionInput.addEventListener('blur', updateSalaryFromPosition);
+    }
+    if (salaryInput) {
+        salaryInput.addEventListener('input', updateHourlyRateDisplay);
+    }
+}
+
 // Function to fetch employees from server
 async function fetchEmployees() {
     try {
@@ -49,12 +103,16 @@ async function renderEmployees() {
         const employees = await fetchEmployees();
         employeeList.innerHTML = '';
         employees.forEach(employee => {
+            const salary = Number(employee.basic_salary) || 0;
+            const hourlyRate = getHourlyRate(salary);
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${employee.id}</td>
                 <td>${employee.name}</td>
                 <td>${employee.position}</td>
                 <td>${employee.department}</td>
+                <td>${formatPesos(salary)}</td>
+                <td>${formatPesos(hourlyRate)}</td>
                 <td><button onclick="deleteEmployee(${employee.id})">Delete</button></td>
             `;
             employeeList.appendChild(row);
@@ -76,6 +134,22 @@ async function deleteEmployee(id) {
     await renderEmployees();
 }
 
+function validateEmployeeData(employee) {
+    if (!employee.first_name) return { valid: false, message: 'First name is required.' };
+    if (!employee.last_name) return { valid: false, message: 'Last name is required.' };
+    if (!employee.email) return { valid: false, message: 'Email is required.' };
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(employee.email)) return { valid: false, message: 'Enter a valid email address.' };
+    if (!employee.phone) return { valid: false, message: 'Phone number is required.' };
+    const phoneRegex = /^[0-9+\- ]{7,20}$/;
+    if (!phoneRegex.test(employee.phone)) return { valid: false, message: 'Enter a valid phone number (digits, +, -, spaces).' };
+    if (!employee.position) return { valid: false, message: 'Position is required.' };
+    if (!employee.department) return { valid: false, message: 'Department is required.' };
+    if (!employee.hire_date) return { valid: false, message: 'Hire date is required.' };
+    if (!(Number(employee.basic_salary) > 0)) return { valid: false, message: 'Salary must be greater than zero.' };
+    return { valid: true };
+}
+
 // Event listener for add employee form
 const addEmployeeForm = document.getElementById('add-employee-form');
 if (addEmployeeForm) {
@@ -94,9 +168,16 @@ if (addEmployeeForm) {
             status: 'ACTIVE'
         };
 
+        const validation = validateEmployeeData(employee);
+        if (!validation.valid) {
+            alert(validation.message);
+            return;
+        }
+
         const newEmployee = await addEmployeeAPI(employee);
         if (newEmployee) {
             addEmployeeForm.reset();
+            updateHourlyRateDisplay();
             alert('Employee added successfully and saved to the database.');
         } else {
             alert('Failed to add employee. Please try again.');
@@ -171,6 +252,31 @@ async function populateAttendanceEmployees() {
     }
 }
 
+function validateAttendanceData(emp_id, work_date, timeInValue, timeOutValue, status, overtime_hours) {
+    if (!emp_id) return { valid: false, message: 'Please select an employee.' };
+    if (!work_date) return { valid: false, message: 'Please enter a work date.' };
+    if (!timeInValue) return { valid: false, message: 'Please enter a time in value.' };
+    if (!timeOutValue) return { valid: false, message: 'Please enter a time out value.' };
+    if (!status) return { valid: false, message: 'Please select a status.' };
+    if (Number.isNaN(overtime_hours) || overtime_hours < 0) return { valid: false, message: 'Overtime hours must be zero or greater.' };
+    return validateAttendanceTimes(work_date, timeInValue, timeOutValue);
+}
+
+function validateAttendanceTimes(work_date, timeInValue, timeOutValue) {
+    const timeIn = new Date(`${work_date}T${timeInValue}:00`);
+    const timeOut = new Date(`${work_date}T${timeOutValue}:00`);
+
+    if (Number.isNaN(timeIn.getTime()) || Number.isNaN(timeOut.getTime())) {
+        return { valid: false, message: 'The provided time values are invalid.' };
+    }
+
+    if (timeOut <= timeIn) {
+        return { valid: false, message: 'Time out must be later than time in.' };
+    }
+
+    return { valid: true };
+}
+
 // Event listener for add attendance form
 const attendanceForm = document.getElementById('attendance-form');
 if (attendanceForm) {
@@ -182,6 +288,12 @@ if (attendanceForm) {
         const timeOutValue = document.getElementById('time-out').value;
         const status = document.getElementById('status').value;
         const overtime_hours = parseFloat(document.getElementById('overtime-hours').value) || 0;
+
+        const validation = validateAttendanceData(emp_id, work_date, timeInValue, timeOutValue, status, overtime_hours);
+        if (!validation.valid) {
+            alert(validation.message);
+            return;
+        }
 
         const time_in = `${work_date}T${timeInValue}:00`;
         const time_out = `${work_date}T${timeOutValue}:00`;
@@ -198,4 +310,5 @@ document.addEventListener('DOMContentLoaded', () => {
     renderEmployees();
     renderAttendance();
     populateAttendanceEmployees();
+    setupSalaryAutomation();
 });
