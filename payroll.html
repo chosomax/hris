@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRIS - Payroll</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .payroll-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .payroll-controls h3 { margin-top: 0; }
+        .payroll-controls label { margin-right: 8px; }
+        .payroll-controls input { margin-right: 20px; }
+        .payroll-controls button { padding: 8px 16px; margin-right: 10px; }
+        .payroll-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .payroll-table th, .payroll-table td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+        .payroll-table th { background-color: #f2f2f2; font-weight: bold; }
+        .payroll-table tr:hover { background-color: #f9f9f9; }
+        .slip-button { padding: 6px 12px; font-size: 12px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 3px; }
+        .slip-button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Human Resource Information System</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="employees.html">Employees</a>
+            <a href="add-employee.html">Add Employee</a>
+            <a href="attendance.html">Attendance</a>
+            <a href="payroll.html">Payroll</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Payroll Management</h2>
+
+        <div class="payroll-controls">
+            <h3>Generate Payroll</h3>
+            <label for="period-start">Period Start:</label>
+            <input type="date" id="period-start">
+            <label for="period-end">Period End:</label>
+            <input type="date" id="period-end">
+            <button id="generate-payroll-btn">Generate Payroll</button>
+        </div>
+
+        <h3>Payroll Records</h3>
+        <table class="payroll-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Employee</th>
+                    <th>Period</th>
+                    <th>Basic Salary</th>
+                    <th>Gross Pay</th>
+                    <th>Deductions</th>
+                    <th>Net Pay</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="payroll-list">
+            </tbody>
+        </table>
+    </main>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('generate-payroll-btn').addEventListener('click', async () => {
+                const periodStart = document.getElementById('period-start').value;
+                const periodEnd = document.getElementById('period-end').value;
+
+                if (!periodStart || !periodEnd) {
+                    alert('Please select both a start and end date.');
+                    return;
+                }
+
+                if (new Date(periodEnd) < new Date(periodStart)) {
+                    alert('End date must be after start date.');
+                    return;
+                }
+
+                if (confirm(`Generate payroll for ${periodStart} to ${periodEnd}?`)) {
+                    const btn = document.getElementById('generate-payroll-btn');
+                    btn.disabled = true;
+                    btn.textContent = 'Generating...';
+                    await generatePayroll(periodStart, periodEnd);
+                    await renderPayroll();
+                    btn.disabled = false;
+                    btn.textContent = 'Generate Payroll';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

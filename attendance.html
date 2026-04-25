@@ -16,10 +16,30 @@
             <a href="employees.html">Employees</a>
             <a href="add-employee.html">Add Employee</a>
             <a href="attendance.html">Attendance</a>
+            <a href="payroll.html">Payroll</a>
         </nav>
     </header>
     <main>
         <h2>Attendance Records</h2>
+        
+        <!-- Filter Controls -->
+        <div id="filter-controls" style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <h3>Filter Records</h3>
+            <label for="filter-employee">Employee:</label>
+            <select id="filter-employee">
+                <option value="">All Employees</option>
+            </select>
+            
+            <label for="filter-date-from" style="margin-left: 20px;">From Date:</label>
+            <input type="date" id="filter-date-from">
+            
+            <label for="filter-date-to" style="margin-left: 20px;">To Date:</label>
+            <input type="date" id="filter-date-to">
+            
+            <button type="button" id="apply-filters" style="margin-left: 20px;">Apply Filters</button>
+            <button type="button" id="clear-filters" style="margin-left: 10px;">Clear Filters</button>
+        </div>
+        
         <form id="attendance-form">
             <label for="employee-select">Employee:</label>
             <select id="employee-select" required>
@@ -30,10 +50,10 @@
             <input type="date" id="work-date" required>
 
             <label for="time-in">Time In:</label>
-            <input type="time" id="time-in" required>
+            <input type="time" id="time-in">
 
             <label for="time-out">Time Out:</label>
-            <input type="time" id="time-out" required>
+            <input type="time" id="time-out">
 
             <label for="status">Status:</label>
             <select id="status" required>
@@ -59,6 +79,7 @@
                     <th>Time Out</th>
                     <th>Status</th>
                     <th>Overtime</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="attendance-list">

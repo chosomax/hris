@@ -16,6 +16,7 @@
             <a href="employees.html">Employees</a>
             <a href="add-employee.html">Add Employee</a>
             <a href="attendance.html">Attendance</a>
+            <a href="payroll.html">Payroll</a>
         </nav>
     </header>
     <main>
@@ -30,9 +31,13 @@
             <label for="phone">Phone:</label>
             <input type="tel" id="phone" required pattern="[0-9+\- ]{7,20}" placeholder="09171234567">
             <label for="position">Position:</label>
-            <input type="text" id="position" required>
+            <select id="position" required>
+                <option value="">Select a position</option>
+            </select>
             <label for="department">Department:</label>
-            <input type="text" id="department" required>
+            <select id="department" required>
+                <option value="">Select a department</option>
+            </select>
             <label for="salary">Salary (₱):</label>
             <input type="number" id="salary" step="0.01" min="0.01" value="0.00" required>
             <label for="hourly-rate">Hourly Rate (₱):</label>
